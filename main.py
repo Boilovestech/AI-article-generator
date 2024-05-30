@@ -74,6 +74,7 @@ st.markdown(
     body {
         background-color: #000000;
         color: #FFFFFF;
+        font-family: Arial, sans-serif;
     }
     </style>
     """,
@@ -87,7 +88,6 @@ font_size = st.sidebar.slider("Font size", min_value=8, max_value=24, value=12, 
 font_family = st.sidebar.selectbox("Font family", ["Arial", "Times New Roman", "Courier", "Verdana"])
 
 st.title("📝AI Article Generator✨")
-st.write("Keep the  prompt(s) short prefrebly one to 10 words for  best results!!")
 topic = st.text_input("Enter the topic for the article:")
 
 if st.button("Generate Article"):
@@ -105,10 +105,13 @@ if st.button("Generate Article"):
             pdf.rect(0, 0, 210, 297, 'F')  # Fill the background with the random dark color
 
             pdf.set_text_color(255, 255, 255)  # Set text color to white
-            pdf.set_font(font_family, style="B", size=16)
+            pdf.set_font(font_family, style="B", size=24)  # Larger font for title
             pdf.cell(200, 10, txt=topic.upper(), ln=True, align="C")
 
-            pdf.set_font(font_family, size=font_size)
+            pdf.set_font(font_family, style="B", size=16)  # Bold font for headings
+            pdf.set_text_color(255, 255, 255)  # Set text color to white
+
+            pdf.set_font(font_family, size=font_size)  # Normal font size for content
 
             paragraphs = article_text.split("\n\n")
             for i, paragraph in enumerate(paragraphs[:num_paragraphs]):
