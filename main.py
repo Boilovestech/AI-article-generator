@@ -40,10 +40,7 @@ def generate_text(prompt):
             ],
             model="llama3-8b-8192",
         )
-        generated_text = chat_completion.choices[0].message.content
-        st.write("Generated text from GROQ API:")
-        st.write(generated_text)
-        return generated_text
+        return chat_completion.choices[0].message.content
     except Exception as e:
         if hasattr(e, 'response') and e.response:
             error_message = e.response.json()
@@ -58,6 +55,11 @@ def get_text_color(bg_color):
         return 255, 255, 255  
     else:
         return 0, 0, 0  
+
+def download_pdf(pdf, filename):
+    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+        pdf.output(tmp_file.name)
+        st.download_button(label="Download PDF", data=tmp_file.name, file_name=filename, mime="application/pdf")
 
 st.markdown(
     """
@@ -116,18 +118,21 @@ if st.button("Generate Article"):
 
             paragraphs = article_text.split("\n\n")
 
-            for i, paragraph in enumerate(paragraphs[:num_paragraphs]):
+            for paragraph in paragraphs[:num_paragraphs]:
                 pdf.multi_cell(0, font_size * 1.2, txt=paragraph, align="J")
 
-                if i < num_images and i < len(image_urls):
-                    response = requests.get(image_urls[i])
-                    if response.status_code == 200:
-                        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
-                            temp_file.write(response.content)
-                            image_width = pdf.w - 40  # Adjust image width based on page width
-                            pdf.image(temp_file.name, x=20, w=image_width)  # Center the image horizontally
-                            st.image(image_urls[i], caption=f"Image {i+1}")
-                    else:
-                        st.warning("Failed to retrieve image")
+            for i, image_url in enumerate(image_urls[:num_images]):
+                response = requests.get(image_url)
+                if response.status_code == 200:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+                        temp_file.write(response.content)
+                        image_width = pdf.w - 40  # Adjust image width based on page width
+                        pdf.image(temp_file.name, x=20, w=image_width)  # Center the image horizontally
+                        st.image(image_url, caption=f"Image {i+1}")
+                else:
+                    st.warning("Failed to retrieve image")
+
+            filename = f"{topic}_article.pdf"
+            download_pdf(pdf, filename)
         else:
             st.warning("Failed to generate article")
