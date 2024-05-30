@@ -129,7 +129,7 @@ if st.button("Generate Article"):
                         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
                             temp_file.write(response.content)
                             pdf.image(temp_file.name, w=150)
-                            pdf.set_y(pdf.get_y() + 10)  # Adjust vertical position to reduce gap
+                            pdf.set_y(pdf.get_y() + 5)  # Adjust vertical position after image
                             pdf.add_page()
                             pdf.set_fill_color(*bg_color)
                             pdf.rect(0, 0, 210, 297, 'F')  # Maintain the same background color
