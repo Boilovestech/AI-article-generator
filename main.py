@@ -97,9 +97,9 @@ if st.button("Generate Article"):
 
         if article_text and image_urls:
             pdf = FPDF()
-            pdf.add_page()
-
             bg_color = get_random_dark_color()
+
+            pdf.add_page()
             pdf.set_fill_color(*bg_color)
             pdf.rect(0, 0, 210, 297, 'F')  # Fill the background with the random dark color
 
@@ -118,6 +118,9 @@ if st.button("Generate Article"):
                         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
                             temp_file.write(response.content)
                             pdf.image(temp_file.name, w=150)
+                            pdf.add_page()
+                            pdf.set_fill_color(*bg_color)
+                            pdf.rect(0, 0, 210, 297, 'F')  # Maintain the same background color
 
             pdf_file = download_pdf(pdf)
             st.success("Article generated successfully!")
@@ -129,6 +132,7 @@ if st.button("Generate Article"):
             for img_url in image_urls[:num_images]:
                 st.image(img_url, caption="Used Image")
 
-            st.markdown(get_binary_file_downloader_html(pdf_file), unsafe_allow_html=True)
+            st.markdown(get_binary_file_downloader_html(pdf_file, 'Download PDF'), unsafe_allow_html=True)
         else:
             st.error("Failed to generate article. Please try again later.")
+
