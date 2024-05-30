@@ -68,6 +68,8 @@ def get_binary_file_downloader_html(bin_file, file_label='Download PDF'):
     href = f'<a href="data:application/octet-stream;base64,{b64}" download="{bin_file}" target="_blank">{file_label}</a>'
     return href
 
+supported_fonts = ["Arial", "Times New Roman", "Courier", "Verdana"]
+
 st.markdown(
     """
     <style>
@@ -85,7 +87,7 @@ st.sidebar.title("Customization Options")
 num_paragraphs = st.sidebar.slider("Number of paragraphs", min_value=1, max_value=10, value=3, step=1)
 num_images = st.sidebar.slider("Number of images", min_value=0, max_value=5, value=2, step=1)
 font_size = st.sidebar.slider("Font size", min_value=8, max_value=24, value=12, step=1)
-font_family = st.sidebar.selectbox("Font family", ["Arial", "Times New Roman", "Courier", "Verdana"])
+font_family = st.sidebar.selectbox("Font family", supported_fonts)
 
 st.title("📝AI Article Generator✨")
 topic = st.text_input("Enter the topic for the article:")
