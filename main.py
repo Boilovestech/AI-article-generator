@@ -88,6 +88,7 @@ num_paragraphs = st.sidebar.slider("Number of paragraphs", min_value=1, max_valu
 num_images = st.sidebar.slider("Number of images", min_value=0, max_value=5, value=2, step=1)
 font_size = st.sidebar.slider("Font size", min_value=8, max_value=24, value=12, step=1)
 font_family = st.sidebar.selectbox("Font family", supported_fonts)
+image_size = st.sidebar.slider("Image size", min_value=50, max_value=300, value=150, step=10)
 
 st.title("📝AI Article Generator✨")
 topic = st.text_input("Enter the topic for the article:")
@@ -128,7 +129,7 @@ if st.button("Generate Article"):
                     if response.status_code == 200:
                         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
                             temp_file.write(response.content)
-                            pdf.image(temp_file.name, w=150)
+                            pdf.image(temp_file.name, w=image_size)
                             pdf.set_y(pdf.get_y() + 5)  # Adjust vertical position after image
                             pdf.add_page()
                             pdf.set_fill_color(*bg_color)
