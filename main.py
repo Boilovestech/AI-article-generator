@@ -6,7 +6,6 @@ import tempfile
 from groq import Groq
 from colorsys import rgb_to_hls, hls_to_rgb
 import base64
-import time
 
 PEXELS_API_KEY = st.secrets["PEXELS_API_KEY"]
 SEARCH_URL = "https://api.pexels.com/v1/search"
@@ -118,4 +117,30 @@ if st.button("Generate Article"):
 
             bg_color = sum(ord(c) for c in topic.lower()) % 256
             pdf.set_fill_color(bg_color, bg_color, bg_color)
-            pdf
+            pdf.rect(0, 0, pdf.w, pdf.h, 'F')
+
+            text_color = get_text_color((bg_color, bg_color, bg_color))
+            pdf.set_text_color(*text_color)
+            pdf.set_font(font_family, style="B", size=16)
+            pdf.cell(0, 10, txt=topic.upper(), ln=1, align="C")
+
+            pdf.set_font(font_family, size=font_size)
+
+            paragraphs = article_text.split("\n\n")
+
+            for paragraph in paragraphs[:num_paragraphs]:
+                pdf.multi_cell(0, font_size * 1.2, txt=paragraph, align="J")
+
+                if num_images > 0 and len(image_urls) > 0:
+                    response = requests.get(image_urls.pop(0))
+                    if response.status_code == 200:
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+                            temp_file.write(response.content)
+                            image_width = pdf.w - 40  # Adjust image width based on page width
+                            pdf.image(temp_file.name, x=20, w=image_width)  # Center the image horizontally
+
+            pdf_file = download_pdf(pdf)
+            st.success("Article generated successfully!")
+            st.markdown(get_binary_file_downloader_html(pdf_file, "Download PDF"), unsafe_allow_html=True)
+        else:
+            st.error("Failed to generate article. Please try again later.")
