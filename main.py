@@ -41,7 +41,8 @@ def generate_text(prompt):
             model="llama3-8b-8192",
         )
         generated_text = chat_completion.choices[0].message.content
-        st.write("Response from GROQ API:", chat_completion)
+        st.write("Generated text from GROQ API:")
+        st.write(generated_text)
         return generated_text
     except Exception as e:
         if hasattr(e, 'response') and e.response:
@@ -130,4 +131,3 @@ if st.button("Generate Article"):
                         st.warning("Failed to retrieve image")
         else:
             st.warning("Failed to generate article")
-
