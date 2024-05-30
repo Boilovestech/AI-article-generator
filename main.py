@@ -106,11 +106,12 @@ st.title("📝AI Article Generator✨")
 topic = st.text_input("Enter the topic for the article:")
 
 # Load last generation time from session state or set default value
-last_generation_time = st.session_state.get('last_generation_time', time.time())
+last_generation_time = st.session_state.get('last_generation_time', {})
 
 if st.button("Generate Article"):
-    if time.time() - last_generation_time >= 900:  # Check if 15 minutes have passed
-        st.session_state.last_generation_time = time.time()  # Update last generation time
+    if last_generation_time.get(st.session_id, 0) == 0 or time.time() - last_generation_time[st.session_id] >= 900:
+        last_generation_time[st.session_id] = time.time()
+        st.session_state.last_generation_time = last_generation_time
 
         with st.spinner("Generating article..."):
             
