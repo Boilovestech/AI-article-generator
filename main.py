@@ -1,24 +1,25 @@
-import streamlit as st
+import os
 import requests
+import streamlit as st
 from fpdf import FPDF
-from urllib.parse import urlparse
 import tempfile
 from groq import Groq
-from colorsys import rgb_to_hls, hls_to_rgb
+from colorsys import rgb_to_hls
+import urllib3
 
 # Load environment variables
-dotenv_path = find_dotenv()
-load_dotenv(dotenv_path)
+PEXELS_API_KEY = st.secrets["pexels_api_key"]
+GROQ_API_KEY = st.secrets["groq_api_key"]
 
 # Configure Pexels API client
-PEXELS_API_KEY = st.secrets["pexels_api_key"]
 SEARCH_URL = "https://api.pexels.com/v1/search"
 
 # Configure Groq API client
-client = Groq(api_key=st.secrets["groq_api_key"])
+client = Groq(api_key=GROQ_API_KEY)
 
 # Function to query Pexels for image search
 def query_image(query):
+    http = urllib3.PoolManager()
     params = {
         "query": query,
         "per_page": 3,
@@ -28,12 +29,14 @@ def query_image(query):
         "orientation": "landscape",
         "format": "png"
     }
-    response = requests.get(SEARCH_URL, params=params, headers={"Authorization": PEXELS_API_KEY})
-    if response.status_code == 200:
-        images = response.json()["photos"]
-        return [urlparse(image["src"]["large"]).scheme + "://" + urlparse(image["src"]["large"]).netloc + urlparse(image["src"]["large"]).path for image in images[:2]]
+    encoded_params = "&".join(f"{key}={value}" for key, value in params.items())
+    response = http.request('GET', f"{SEARCH_URL}?{encoded_params}", headers={"Authorization": PEXELS_API_KEY})
+    if response.status == 200:
+        images = response.data.decode('utf-8')
+        images = json.loads(images)['photos']
+        return [image["src"]["large"] for image in images[:2]]
     else:
-        st.error(f"Failed to search for image: {response.status_code} - {response.text}")
+        st.error(f"Failed to search for image: {response.status} - {response.data.decode('utf-8')}")
         return None
 
 # Function to generate text using Groq
@@ -79,6 +82,7 @@ hide_st_style = """
             </style>
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
+
 # Sidebar for customization options
 st.sidebar.title("Customization Options")
 num_paragraphs = st.sidebar.slider("Number of paragraphs", min_value=1, max_value=10, value=3, step=1)
@@ -126,12 +130,25 @@ if st.button("Generate Article"):
 
                 # Add image after each paragraph
                 if i < num_images and i < len(image_urls):
-                    response = requests.get(image_urls[i])
-                    if response.status_code == 200:
+                    response = http.request('GET', image_urls[i])
+                    if response.status == 200:
                         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
-                            temp_file.write(response.content)
+                            temp_file.write(response.data)
                             image_width = pdf.w - 40  # Adjust image width based on page width
                             pdf.image(temp_file.name, x=20, w=image_width)  # Center the image horizontally
                             st.image(image_urls[i], caption=f"Image {i+1}")
                     else:
-                        st.warning
+                        st.warning(f"Failed to download image: {response.status} - {response.data.decode('utf-8')}")
+
+                pdf.cell(0, font_size * 1.2, txt="", ln=1)  # Add a blank line after the image or paragraph
+
+            pdf.output(pdf_path)
+            st.success("Article generated successfully!")
+            st.write(article_text)
+            with open(pdf_path, "rb") as pdf_file:
+                st.download_button(
+                    label="Download PDF",
+                    data=pdf_file,
+                    file_name="generated_article.pdf",
+                    mime="application/pdf"
+                )
