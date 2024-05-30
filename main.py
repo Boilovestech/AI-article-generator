@@ -1,56 +1,59 @@
 import os
 import requests
+from dotenv import find_dotenv, load_dotenv
 import streamlit as st
 from fpdf import FPDF
 import tempfile
 from groq import Groq
-from colorsys import rgb_to_hls
-import urllib3
+from colorsys import rgb_to_hls, hls_to_rgb
 
 # Load environment variables
-PEXELS_API_KEY = st.secrets["pexels_api_key"]
-GROQ_API_KEY = st.secrets["groq_api_key"]
+dotenv_path = find_dotenv()
+load_dotenv(dotenv_path)
 
 # Configure Pexels API client
+PEXELS_API_KEY = st.secrets["pexels_api_key"]
 SEARCH_URL = "https://api.pexels.com/v1/search"
 
 # Configure Groq API client
-client = Groq(api_key=GROQ_API_KEY)
+client = Groq(api_key=st.secrets["groq_api_key"])
 
 # Function to query Pexels for image search
 def query_image(query):
-    http = urllib3.PoolManager()
     params = {
         "query": query,
         "per_page": 3,
         "page": 1,
-        "image_type": "photo",
-        "size": "large",
         "orientation": "landscape",
-        "format": "png"
     }
-    encoded_params = "&".join(f"{key}={value}" for key, value in params.items())
-    response = http.request('GET', f"{SEARCH_URL}?{encoded_params}", headers={"Authorization": PEXELS_API_KEY})
-    if response.status == 200:
-        images = response.data.decode('utf-8')
-        images = json.loads(images)['photos']
-        return [image["src"]["large"] for image in images[:2]]
+    response = requests.get(SEARCH_URL, params=params, headers={"Authorization": PEXELS_API_KEY})
+    if response.status_code == 200:
+        images = response.json().get("photos", [])
+        if images:
+            return [image["src"]["large"] for image in images[:2]]
+        else:
+            st.warning("No images found.")
+            return []
     else:
-        st.error(f"Failed to search for image: {response.status} - {response.data.decode('utf-8')}")
-        return None
+        st.error(f"Failed to search for images: {response.status_code} - {response.text}")
+        return []
 
 # Function to generate text using Groq
 def generate_text(prompt):
-    chat_completion = client.chat.completions.create(
-        messages=[
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ],
-        model="llama3-8b-8192",
-    )
-    return chat_completion.choices[0].message.content
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            model="llama3-8b-8192",
+        )
+        return chat_completion.choices[0].message.content
+    except Exception as e:
+        st.error(f"Failed to generate text: {str(e)}")
+        return ""
 
 # Function to calculate text color based on background color
 def get_text_color(bg_color):
@@ -72,15 +75,12 @@ st.markdown(
     unsafe_allow_html=True
 )
 hide_st_style = """
-            <style>
-                body {
-        background-color: #000000;
-    }
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            </style>
-            """
+    <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+    </style>
+"""
 st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # Sidebar for customization options
@@ -91,7 +91,7 @@ font_size = st.sidebar.slider("Font size", min_value=8, max_value=24, value=12, 
 font_family = st.sidebar.selectbox("Font family", ["Arial", "Times New Roman", "Courier", "Verdana"])
 
 # Main content
-st.title("📝AI Article Generator✨")
+st.title("📝 AI Article Generator ✨")
 topic = st.text_input("Enter the topic for the article:")
 
 if st.button("Generate Article"):
@@ -103,7 +103,7 @@ if st.button("Generate Article"):
         # Search for relevant images
         image_urls = query_image(topic)
 
-        if image_urls:
+        if article_text:
             pdf_path = "generated_article.pdf"
             pdf = FPDF()
             pdf.add_page()
@@ -130,15 +130,15 @@ if st.button("Generate Article"):
 
                 # Add image after each paragraph
                 if i < num_images and i < len(image_urls):
-                    response = http.request('GET', image_urls[i])
-                    if response.status == 200:
+                    response = requests.get(image_urls[i])
+                    if response.status_code == 200:
                         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
-                            temp_file.write(response.data)
+                            temp_file.write(response.content)
                             image_width = pdf.w - 40  # Adjust image width based on page width
                             pdf.image(temp_file.name, x=20, w=image_width)  # Center the image horizontally
                             st.image(image_urls[i], caption=f"Image {i+1}")
                     else:
-                        st.warning(f"Failed to download image: {response.status} - {response.data.decode('utf-8')}")
+                        st.warning(f"Failed to download image: {response.status_code} - {response.text}")
 
                 pdf.cell(0, font_size * 1.2, txt="", ln=1)  # Add a blank line after the image or paragraph
 
