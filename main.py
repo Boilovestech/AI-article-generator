@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 import tempfile
 from groq import Groq
 from colorsys import rgb_to_hls
+import base64
 
 PEXELS_API_KEY = st.secrets["PEXELS_API_KEY"]
 SEARCH_URL = "https://api.pexels.com/v1/search"
@@ -55,11 +56,15 @@ def get_text_color(bg_color):
         return 0, 0, 0  
 
 def download_pdf(pdf):
+    if pdf is None:
+        return None
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as f:
         pdf.output(f.name, "F")
         return f.name
 
 def get_binary_file_downloader_html(bin_file, file_label='Download PDF'):
+    if bin_file is None:
+        return ''
     with open(bin_file, 'rb') as f:
         data = f.read()
     b64 = base64.b64encode(data).decode()
@@ -132,4 +137,3 @@ if st.button("Generate Article"):
             st.markdown(get_binary_file_downloader_html(pdf_file), unsafe_allow_html=True)
         else:
             st.error("Failed to generate article. Please try again later.")
-
