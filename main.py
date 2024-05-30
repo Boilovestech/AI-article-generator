@@ -107,7 +107,12 @@ if st.button("Generate Article"):
             pdf.rect(0, 0, 210, 297, 'F')  # Fill the background with the random dark color
 
             pdf.set_text_color(255, 255, 255)  # Set text color to white
-            pdf.set_font(font_family, style="B", size=24)  # Larger font for title
+            if font_family in supported_fonts:
+                pdf.set_font(font_family, style="B", size=24)  # Larger font for title
+            else:
+                st.error("Unsupported font selected. Please choose from the provided options.")
+                st.stop()
+
             pdf.cell(200, 10, txt=topic.upper(), ln=True, align="C")
 
             pdf.set_font(font_family, style="B", size=16)  # Bold font for headings
