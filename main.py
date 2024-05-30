@@ -87,6 +87,7 @@ font_size = st.sidebar.slider("Font size", min_value=8, max_value=24, value=12, 
 font_family = st.sidebar.selectbox("Font family", ["Arial", "Times New Roman", "Courier", "Verdana"])
 
 st.title("📝AI Article Generator✨")
+st.write("Keep the  prompt(s) short prefrebly one to 10 words for  best results!!")
 topic = st.text_input("Enter the topic for the article:")
 
 if st.button("Generate Article"):
