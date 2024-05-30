@@ -56,16 +56,17 @@ def get_text_color(bg_color):
     else:
         return 0, 0, 0  
 
-def download_pdf(pdf, filename):
-    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-        pdf.output(tmp_file.name)
-        st.download_button(label="Download PDF", data=tmp_file.name, file_name=filename, mime="application/pdf")
+def download_pdf(pdf):
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as f:
+        pdf.output(f.name, "F")
+        return f.name
 
 st.markdown(
     """
     <style>
     body {
         background-color: #000000;
+        color: #FFFFFF;
     }
     </style>
     """,
@@ -75,6 +76,7 @@ hide_st_style = """
             <style>
                 body {
         background-color: #000000;
+        color: #FFFFFF;
     }
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
@@ -121,18 +123,14 @@ if st.button("Generate Article"):
             for paragraph in paragraphs[:num_paragraphs]:
                 pdf.multi_cell(0, font_size * 1.2, txt=paragraph, align="J")
 
-            for i, image_url in enumerate(image_urls[:num_images]):
-                response = requests.get(image_url)
-                if response.status_code == 200:
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
-                        temp_file.write(response.content)
-                        image_width = pdf.w - 40  # Adjust image width based on page width
-                        pdf.image(temp_file.name, x=20, w=image_width)  # Center the image horizontally
-                        st.image(image_url, caption=f"Image {i+1}")
-                else:
-                    st.warning("Failed to retrieve image")
+                if num_images > 0 and len(image_urls) > 0:
+                    response = requests.get(image_urls.pop(0))
+                    if response.status_code == 200:
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+                            temp_file.write(response.content)
+                            image_width = pdf.w - 40  # Adjust image width based on page width
+                            pdf.image(temp_file.name, x=20, w=image_width)  # Center the image horizontally
 
-            filename = f"{topic}_article.pdf"
-            download_pdf(pdf, filename)
-        else:
-            st.warning("Failed to generate article")
+            pdf_file = download_pdf(pdf)
+            st.success("Article generated successfully!")
+            st.markdown(get_binary_file_downloader_html(pdf_file, "PDF"), unsafe_allow_html=True)
