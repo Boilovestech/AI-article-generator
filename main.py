@@ -105,21 +105,17 @@ font_family = st.sidebar.selectbox("Font family", ["Arial", "Times New Roman", "
 st.title("📝AI Article Generator✨")
 topic = st.text_input("Enter the topic for the article:")
 
-# Load last generation time from session state or set default value
-last_generation_time = st.session_state.get('last_generation_time', {})
-
 if st.button("Generate Article"):
-    if last_generation_time.get(st.session_id, 0) == 0 or time.time() - last_generation_time[st.session_id] >= 900:
-        last_generation_time[st.session_id] = time.time()
-        st.session_state.last_generation_time = last_generation_time
+    with st.spinner("Generating article..."):
+        prompt = f"Write a short article about {topic} with {num_paragraphs} paragraphs:"
+        article_text = generate_text(prompt)
+        image_urls = query_image(topic)
 
-        with st.spinner("Generating article..."):
-            
-            prompt = f"Write a short article about {topic} with {num_paragraphs} paragraphs:"
-            article_text = generate_text(prompt)
-            
-            image_urls = query_image(topic)
+        if article_text and image_urls:
+            pdf_path = "generated_article.pdf"
+            pdf = FPDF()
+            pdf.add_page()
 
-            if article_text and image_urls:
-                pdf_path = "generated_article.pdf"
-                pdf = F
+            bg_color = sum(ord(c) for c in topic.lower()) % 256
+            pdf.set_fill_color(bg_color, bg_color, bg_color)
+            pdf
