@@ -121,6 +121,7 @@ if st.button("Generate Article"):
                             pdf.add_page()
                             pdf.set_fill_color(*bg_color)
                             pdf.rect(0, 0, 210, 297, 'F')  # Maintain the same background color
+                            pdf.set_text_color(255, 255, 255)  # Set text color to white
 
             pdf_file = download_pdf(pdf)
             st.success("Article generated successfully!")
@@ -135,4 +136,3 @@ if st.button("Generate Article"):
             st.markdown(get_binary_file_downloader_html(pdf_file, 'Download PDF'), unsafe_allow_html=True)
         else:
             st.error("Failed to generate article. Please try again later.")
-
