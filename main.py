@@ -4,7 +4,7 @@ from fpdf import FPDF
 from urllib.parse import urlparse
 import tempfile
 from groq import Groq
-from colorsys import rgb_to_hls
+import random
 import base64
 
 PEXELS_API_KEY = st.secrets["PEXELS_API_KEY"]
@@ -12,7 +12,7 @@ SEARCH_URL = "https://api.pexels.com/v1/search"
 
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-@st.cache(ttl=900)  # Cache timeout set to 900 seconds (15 minutes)
+@st.cache_data(ttl=900)  # Cache timeout set to 900 seconds (15 minutes)
 def query_image(query):
     params = {
         "query": query,
@@ -31,7 +31,7 @@ def query_image(query):
         st.error(f"Failed to search for image: {response.status_code} - {response.text}")
         return None
 
-@st.cache(ttl=900)  # Cache timeout set to 900 seconds (15 minutes)
+@st.cache_data(ttl=900)  # Cache timeout set to 900 seconds (15 minutes)
 def generate_text(prompt):
     try:
         chat_completion = client.chat.completions.create(
@@ -48,12 +48,9 @@ def generate_text(prompt):
         st.error(f"Failed to generate text: {str(e)}")
         return None
 
-def get_text_color(bg_color):
-    h, l, s = rgb_to_hls(bg_color[0] / 255, bg_color[1] / 255, bg_color[2] / 255)
-    if l < 0.5:
-        return 255, 255, 255  # White text for dark background
-    else:
-        return 0, 0, 0  # Black text for light background
+def get_random_dark_color():
+    # Generate a random dark color
+    return random.randint(0, 100), random.randint(0, 100), random.randint(0, 100)
 
 def download_pdf(pdf):
     if pdf is None:
@@ -102,28 +99,25 @@ if st.button("Generate Article"):
             pdf = FPDF()
             pdf.add_page()
 
-            bg_color = sum(ord(c) for c in topic.lower()) % 256
-            pdf.set_fill_color(bg_color, bg_color, bg_color)
-            text_color = get_text_color((bg_color, bg_color, bg_color))
-            pdf.set_text_color(*text_color)
+            bg_color = get_random_dark_color()
+            pdf.set_fill_color(*bg_color)
+            pdf.rect(0, 0, 210, 297, 'F')  # Fill the background with the random dark color
+
+            pdf.set_text_color(255, 255, 255)  # Set text color to white
             pdf.set_font(font_family, style="B", size=16)
             pdf.cell(200, 10, txt=topic.upper(), ln=True, align="C")
 
             pdf.set_font(font_family, size=font_size)
 
             paragraphs = article_text.split("\n\n")
-
-            for paragraph in paragraphs[:num_paragraphs]:
+            for i, paragraph in enumerate(paragraphs[:num_paragraphs]):
                 pdf.multi_cell(0, 10, txt=paragraph, align="J")
-
-            for img_url in image_urls[:num_images]:
-                response = requests.get(img_url)
-                if response.status_code == 200:
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
-                        temp_file.write(response.content)
-                        pdf.image(temp_file.name, w=150)
-                else:
-                    st.warning(f"Failed to fetch image: {img_url}")
+                if i < len(image_urls) and i < num_images:
+                    response = requests.get(image_urls[i])
+                    if response.status_code == 200:
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+                            temp_file.write(response.content)
+                            pdf.image(temp_file.name, w=150)
 
             pdf_file = download_pdf(pdf)
             st.success("Article generated successfully!")
