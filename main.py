@@ -104,7 +104,7 @@ if st.button("Generate Article"):
 
             bg_color = sum(ord(c) for c in topic.lower()) % 256
             pdf.set_fill_color(bg_color, bg_color, bg_color)
-            text_color = get_text_color(bg_color)
+            text_color = get_text_color((bg_color, bg_color, bg_color))
             pdf.set_text_color(*text_color)
             pdf.set_font(font_family, style="B", size=16)
             pdf.cell(200, 10, txt=topic.upper(), ln=True, align="C")
