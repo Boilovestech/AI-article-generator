@@ -1,7 +1,6 @@
 streamlit
 requests
 fpdf
-urllib
 tempfile
 groq
 colorsys
