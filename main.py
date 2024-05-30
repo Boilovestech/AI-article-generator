@@ -1,6 +1,5 @@
 import streamlit as st
 import requests
-from dotenv import find_dotenv, load_dotenv
 from fpdf import FPDF
 from urllib.parse import urlparse
 import tempfile
