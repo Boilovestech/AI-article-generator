@@ -1,6 +1,5 @@
 streamlit
 requests
-urllib3
 fpdf
 groq
-colorsys
+
