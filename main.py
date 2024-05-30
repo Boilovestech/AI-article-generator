@@ -141,13 +141,13 @@ if st.button("Generate Article"):
 
             pdf_file = download_pdf(pdf)
             st.success("Article generated successfully!")
-            st.markdown(get_binary_file_downloader_html(pdf_file, "Download PDF"), unsafe_allow_html=True)
+            st.button("Download PDF", key="download-pdf", on_click=lambda: st.markdown(get_binary_file_downloader_html(pdf_file, "Download PDF"), unsafe_allow_html=True))
             
             st.subheader("Generated Text:")
             st.write(article_text)
             
-            st.subheader("Generated Images:")
+            st.subheader("Used Images:")
             for img_url in image_urls:
-                st.image(img_url, caption='Generated Image')
+                st.image(img_url, caption='Used Image')
         else:
             st.error("Failed to generate article. Please try again later.")
