@@ -4,8 +4,7 @@ from fpdf import FPDF
 from urllib.parse import urlparse
 import tempfile
 from groq import Groq
-from colorsys import rgb_to_hls, hls_to_rgb
-import base64
+from colorsys import rgb_to_hls
 
 PEXELS_API_KEY = st.secrets["PEXELS_API_KEY"]
 SEARCH_URL = "https://api.pexels.com/v1/search"
@@ -26,7 +25,7 @@ def query_image(query):
     response = requests.get(SEARCH_URL, params=params, headers={"Authorization": PEXELS_API_KEY})
     if response.status_code == 200:
         images = response.json()["photos"]
-        return [urlparse(image["src"]["large"]).scheme + "://" + urlparse(image["src"]["large"]).netloc + urlparse(image["src"]["large"]).path for image in images[:2]]
+        return [image["src"]["large"] for image in images[:2]]
     else:
         st.error(f"Failed to search for image: {response.status_code} - {response.text}")
         return None
@@ -45,11 +44,7 @@ def generate_text(prompt):
         )
         return chat_completion.choices[0].message.content
     except Exception as e:
-        if hasattr(e, 'response') and e.response:
-            error_message = e.response.json()
-            st.error(f"Failed to generate text: {error_message}")
-        else:
-            st.error(f"Failed to generate text: {str(e)}")
+        st.error(f"Failed to generate text: {str(e)}")
         return None
 
 def get_text_color(bg_color):
@@ -64,11 +59,11 @@ def download_pdf(pdf):
         pdf.output(f.name, "F")
         return f.name
 
-def get_binary_file_downloader_html(bin_file, file_label='File'):
+def get_binary_file_downloader_html(bin_file, file_label='Download PDF'):
     with open(bin_file, 'rb') as f:
         data = f.read()
-    bin_str = base64.b64encode(data).decode()
-    href = f'<a href="data:application/octet-stream;base64,{bin_str}" download="{bin_file}" target="_blank">{file_label}</a>'
+    b64 = base64.b64encode(data).decode()
+    href = f'<a href="data:application/octet-stream;base64,{b64}" download="{bin_file}" target="_blank">{file_label}</a>'
     return href
 
 st.markdown(
@@ -82,18 +77,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-hide_st_style = """
-            <style>
-                body {
-        background-color: #000000;
-        color: #FFFFFF;
-    }
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            </style>
-            """
-st.markdown(hide_st_style, unsafe_allow_html=True)
 
 st.sidebar.title("Customization Options")
 num_paragraphs = st.sidebar.slider("Number of paragraphs", min_value=1, max_value=10, value=3, step=1)
@@ -111,43 +94,42 @@ if st.button("Generate Article"):
         image_urls = query_image(topic)
 
         if article_text and image_urls:
-            pdf_path = "generated_article.pdf"
             pdf = FPDF()
             pdf.add_page()
 
             bg_color = sum(ord(c) for c in topic.lower()) % 256
             pdf.set_fill_color(bg_color, bg_color, bg_color)
-            pdf.rect(0, 0, pdf.w, pdf.h, 'F')
-
-            text_color = get_text_color((bg_color, bg_color, bg_color))
-            pdf.set_text_color(*text_color)
+            pdf.set_text_color(255, 255, 255)
             pdf.set_font(font_family, style="B", size=16)
-            pdf.cell(0, 10, txt=topic.upper(), ln=1, align="C")
+            pdf.cell(200, 10, txt=topic.upper(), ln=True, align="C")
 
             pdf.set_font(font_family, size=font_size)
 
             paragraphs = article_text.split("\n\n")
 
             for paragraph in paragraphs[:num_paragraphs]:
-                pdf.multi_cell(0, font_size * 1.2, txt=paragraph, align="J")
+                pdf.multi_cell(0, 10, txt=paragraph, align="J")
 
-                if num_images > 0 and len(image_urls) > 0:
-                    response = requests.get(image_urls.pop(0))
-                    if response.status_code == 200:
-                        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
-                            temp_file.write(response.content)
-                            image_width = pdf.w - 40  # Adjust image width based on page width
-                            pdf.image(temp_file.name, x=20, w=image_width)  # Center the image horizontally
+            for img_url in image_urls[:num_images]:
+                response = requests.get(img_url)
+                if response.status_code == 200:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+                        temp_file.write(response.content)
+                        pdf.image(temp_file.name, w=150)
+                else:
+                    st.warning(f"Failed to fetch image: {img_url}")
 
             pdf_file = download_pdf(pdf)
             st.success("Article generated successfully!")
-            st.button("Download PDF", key="download-pdf", on_click=lambda: st.markdown(get_binary_file_downloader_html(pdf_file, "Download PDF"), unsafe_allow_html=True))
-            
+
             st.subheader("Generated Text:")
             st.write(article_text)
-            
+
             st.subheader("Used Images:")
-            for img_url in image_urls:
-                st.image(img_url, caption='Used Image')
+            for img_url in image_urls[:num_images]:
+                st.image(img_url, caption="Used Image")
+
+            st.markdown(get_binary_file_downloader_html(pdf_file), unsafe_allow_html=True)
         else:
             st.error("Failed to generate article. Please try again later.")
+
