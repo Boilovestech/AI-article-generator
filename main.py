@@ -68,7 +68,7 @@ def get_binary_file_downloader_html(bin_file, file_label='Download PDF'):
     href = f'<a href="data:application/octet-stream;base64,{b64}" download="{bin_file}" target="_blank">{file_label}</a>'
     return href
 
-supported_fonts = ["Arial", "Times New Roman", "Courier", "Verdana"]
+supported_fonts = ["Arial", "Courier"]
 
 st.markdown(
     """
@@ -129,6 +129,7 @@ if st.button("Generate Article"):
                         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
                             temp_file.write(response.content)
                             pdf.image(temp_file.name, w=150)
+                            pdf.set_y(pdf.get_y() + 10)  # Adjust vertical position to reduce gap
                             pdf.add_page()
                             pdf.set_fill_color(*bg_color)
                             pdf.rect(0, 0, 210, 297, 'F')  # Maintain the same background color
